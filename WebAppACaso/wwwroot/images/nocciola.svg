@@ -1,0 +1,11 @@
+<svg width="50" height="50" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
+  <path d="M20 5 h10 v5 h5 v5 h5 v15 h-5 v5 h-5 v5 h-10 v-5 h-5 v-5 h-5 v-15 h5 v-5 h5 v-5 z" fill="#3E2723" />
+  
+  <path d="M20 10 h10 v5 h5 v15 h-5 v5 h-10 v-5 h-5 v-15 h5 v-5 z" fill="#8D6E63" />
+  
+  <path d="M20 30 h10 v5 h-10 z" fill="#5D4037" />
+  
+  <path d="M25 15 h5 v5 h-5 z" fill="#D7CCC8" />
+  
+  <path d="M25 0 v5 h-5 v-5 h5" fill="#558B2F" />
+</svg>

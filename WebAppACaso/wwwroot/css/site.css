@@ -1,0 +1,123 @@
+html {
+  font-size: 14px;
+}
+
+@media (min-width: 768px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+}
+
+html {
+  position: relative;
+  min-height: 100%;
+}
+
+body {
+  margin-bottom: 60px;
+  background-color: #383636;
+  color: #f8f9fa;
+}
+
+/* Stile per le celle della tabella (sia scoperte che coperte) */
+.table td {
+  background-color: #e9ecef !important; /* Grigio chiaro (effetto cella scoperta) */
+  color: #212529 !important; /* Colore scuro per numeri e bombe */
+  border: 1px solid #dee2e6 !important; /* Bordo sottile tra le celle */
+  padding: 0 !important; /* Rimuove lo spazio interno di Bootstrap */
+  width: 50px;
+  height: 50px;
+  text-align: center;
+  vertical-align: middle;
+  position: relative; /* Necessario per posizionare il bottone sopra */
+}
+
+.img-bomba {
+  width: 35px; /* Un po' più piccola della cella per lasciare respiro */
+  height: 35px;
+  object-fit: contain; /* Mantiene le proporzioni dell'immagine senza schiacciarla */
+  vertical-align: middle;
+}
+
+.img-bomba2 {
+  width: 30px; /* Un po' più piccola della cella per lasciare respiro */
+  height: 30px;
+  object-fit: contain; /* Mantiene le proporzioni dell'immagine senza schiacciarla */
+  vertical-align: middle;
+}
+
+/* Assicuriamoci che il contenitore span sia centrato */
+.cella-contenuto {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 1.5rem;
+  font-weight: 900; 
+  line-height: 1;
+}
+
+.num-0 {
+  color: darkgoldenrod !important;
+}
+
+.num-1 {
+  color: blue !important;
+}
+
+.num-2 {
+  color: green !important;
+}
+
+.num-3 {
+  color: red !important;
+}
+
+.num-4 {
+  color: darkblue !important;
+}
+
+.btn-copertura {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #bbb;
+  border: 1px solid #999;
+  cursor: pointer;
+  z-index: 10; /* Sta sopra al contenuto */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  cursor: pointer;
+  border-top: 3px solid #eee;
+  border-left: 3px solid #eee;
+  border-right: 3px solid #777;
+  border-bottom: 3px solid #777;
+}
+
+.btn-copertura:hover {
+  background-color: #ccc;
+}
+
+.table-bordered td {
+  border: 1px solid #555 !important;
+}
+
+.cella-evidenziata {
+  background-color: #999 !important;
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.4) !important;
+  border: 1px solid #666 !important;
+  transition: all 0.1s ease;
+}
+
+.btn-copertura:active {
+  background-color: #999 !important;
+  border: none;
+}

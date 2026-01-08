@@ -1,0 +1,60 @@
+﻿@model WebAppACaso.Models.CampoMinatoViewModel
+
+@{
+  ViewData["Title"] = "Campo Minato";
+}
+
+<div class="text-center">
+  <h1 class="display-4">Welcome to Marmottolandia</h1>
+  <h3 class="display-6">💥<strong>Campo Marmottato</strong>💥</h3>
+
+  <form asp-action="CampoMinato" method="post" class="mb-4">
+    <div class="input-group justify-content-center">
+      <label class="input-group-text">Inserisci la grandezza:</label>
+      <input asp-for="Grandezza" type="number" class="form-control" style="max-width: 150px;" min="5" max="15" value="5" class="text-danger"/>
+      <button type="submit" class="btn btn-primary">Genera Matrice</button>
+    </div>
+  </form>
+
+  @if (Model.Grandezza > 0)
+  {
+    <h3>Matrice @Model.Grandezza x @Model.Grandezza</h3>
+    <table class="table table-bordered mx-auto" style="width: auto;">
+      @{
+        var matrice = Model.PopolaMatrice();
+        var celleSicure = (Model.Grandezza * Model.Grandezza) - Model.ContaMine(matrice);
+      }
+      @for (int i = 0; i < Model.Grandezza; i++)
+      {
+        <tr>
+          @for (int j = 0; j < Model.Grandezza; j++)
+          {
+            <td data-riga="@i" data-colonna="@j" onclick="cliccaNumero(this)" 
+            onmouseenter="evidenziaVicini(this, true)" 
+            onmouseleave="evidenziaVicini(this, false)"
+            style="width: 50px; height: 50px; position: relative; padding: 0; text-align: center; vertical-align: middle;">
+              <span class="cella-contenuto num-@matrice[i][j]">
+                @if (matrice[i][j] == "💣")
+                {
+                  <img src="~/images/MarmottaCampoMinato.png" alt="BOMBA" class="img-bomba" />
+                }
+                else
+                {
+                  <strong>@matrice[i][j]</strong>
+                }
+              </span> 
+
+              <button type="button" 
+                class="btn-copertura" 
+                onclick="scopriCella(this); event.stopPropagation();"
+                oncontextmenu="mettiBandiera(event, this)">
+              </button>
+            </td>
+          }
+        </tr>
+      }
+    </table>
+    <p>Numero di <strong>MARMOTTE</strong> <img src="~/favicon.png" class="img-bomba2" /> : @Model.ContaMine(matrice)</p>
+    <div id="gioco-container" data-totale-sicure="@celleSicure" class="d-none"></div>
+  }
+</div>
