@@ -1,0 +1,158 @@
+﻿/* --- CONTENITORE PRINCIPALE DEL GIOCO --- */
+#game-wrapper {
+  position: relative; /* Fondamentale per contenere il menu overlay */
+  width: 100%;
+  max-width: 1200px; /* Larghezza massima per non farlo esplodere su schermi enormi */
+  height: 600px; /* Altezza fissa dell'area di gioco */
+  margin: 0 auto; /* Centra il contenitore nella pagina web */
+  background-color: #222; /* Sfondo scuro SOLO dietro al gioco */
+  border: 5px solid #444; /* Cornice estetica */
+  border-radius: 10px;
+  overflow: hidden; /* Niente deve uscire dai bordi */
+  /* Centra il Canvas dentro questo box */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* --- CANVAS --- */
+#canvas1 {
+  display: none;
+  /* Il colore di sfondo è gestito dal JS, ma mettiamolo anche qui per sicurezza */
+  background-color: #87CEEB;
+  box-shadow: 0 0 30px rgba(0,0,0,0.5);
+  /* Le dimensioni sono gestite dal JS (1024x576), qui non tocchiamo nulla */
+}
+
+/* --- MENU OVERLAY (Specifico per il wrapper) --- */
+#menu-screen {
+  position: absolute; /* Si posiziona sopra il #game-wrapper */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(rgba(0,0,0,0.85), rgba(0,0,0,0.95));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  z-index: 100;
+}
+
+/* --- STILI BOTTONI E TESTI (Uguali a prima) --- */
+.game-title {
+  font-size: 50px; /* Leggermente più piccolo per stare nel box */
+  margin-bottom: 10px;
+  color: #FFD700;
+  text-shadow: 2px 2px 4px #000;
+  font-family: sans-serif;
+}
+
+.subtitle {
+  font-size: 20px;
+  margin-bottom: 30px;
+  color: #ccc;
+  font-family: sans-serif;
+}
+
+.level-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.level-btn {
+  width: 70px;
+  height: 70px;
+  border: none;
+  border-radius: 15px;
+  background-color: #4CAF50;
+  color: white;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 5px #2E7D32;
+  transition: all 0.1s;
+}
+
+.level-btn:hover {
+  background-color: #45a049;
+  transform: translateY(-2px);
+}
+
+.level-btn:active {
+  transform: translateY(4px);
+  box-shadow: 0 0 #2E7D32;
+}
+
+.level-btn.locked {
+  background-color: #555;
+  box-shadow: 0 5px #333;
+  color: #888;
+  cursor: not-allowed;
+  transform: none;
+}
+
+#victory-screen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.85); /* Sfondo scuro semi-trasparente */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  z-index: 200; /* Sopra a tutto, anche al gioco */
+}
+
+.victory-buttons {
+  display: flex;
+  justify-content: center; /* Centra orizzontalmente */
+  align-items: center; /* Centra verticalmente */
+  width: 100%; /* Forza il contenitore a occupare tutto lo spazio disponibile */
+  gap: 30px;
+  margin-top: 20px;
+}
+
+.victory-btn {
+  padding: 10px 30px; /* Rettangolare: più largo che alto */
+  font-size: 22px; /* Testo leggibile */
+  background-color: #4CAF50; /* Verde come gli altri */
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 5px #2E7D32;
+  transition: transform 0.1s;
+  font-weight: bold;
+  text-align: center;
+}
+
+.victory-btn:hover {
+  background-color: #45a049;
+  transform: translateY(-2px);
+}
+
+.victory-btn:active {
+  transform: translateY(4px);
+  box-shadow: 0 0 #2E7D32;
+}
+
+#gameover-screen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(50, 0, 0, 0.85); /* Leggermente rossiccio per enfasi */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  z-index: 200;
+}

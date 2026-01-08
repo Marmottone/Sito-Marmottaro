@@ -1,10 +1,48 @@
 ﻿@{
-  ViewData["Title"] = "Platform";
+    ViewData["Title"] = "Platform";
 }
 
-<div class="game-container text-center">
-    <h2>Marmotta Platform Game!</h2>
-    <canvas id="gameCanvas" width="1100" height="550" style="border:2px solid #000; background: #87CEEB;"></canvas>
+<link rel="stylesheet" href="~/css/style.css">
+
+<div class="text-center my-4">
+    <h1>Marmotta Adventure</h1>
+</div>
+
+<div id="game-wrapper">
+
+    <div id="menu-screen">
+        <h1 class="game-title">Marmotta Platform</h1>
+        <p class="subtitle">Seleziona un livello</p>
+        
+        <div class="level-grid">
+            <button class="level-btn" onclick="startGame(1)">1</button>
+            <button class="level-btn locked">2</button>
+            <button class="level-btn locked">3</button>
+            <button class="level-btn locked">4</button>
+        </div>
+    </div>
+
+    <div id="victory-screen" style="display: none;">
+      <h1 class="game-title">VITTORIA!</h1>
+      <p class="subtitle" id="victory-message">Hai completato il livello</p>
+    
+      <div class="victory-buttons"> 
+        <button class="victory-btn" onclick="restartLevel()" style="width: auto; padding: 0 20px; font-size: 20px;">🔄 Rigioca</button>
+        <button class="victory-btn" onclick="backToMenu()" style="width: auto; padding: 0 20px; font-size: 20px;">🏠 Menu</button>
+      </div>
+    </div>
+
+    <div id="gameover-screen" style="display: none;">
+      <h1 class="game-title" style="color: #ff4444;">HAI PERSO!</h1>
+      <p class="subtitle">Attento alle spine...</p>
+      
+      <div class="victory-buttons"> 
+        <button class="victory-btn" onclick="restartLevel()">🔄 Riprova</button>
+        <button class="victory-btn" onclick="backToMenu()">🏠 Menu</button>
+      </div>
+    </div>
+
+    <canvas id="canvas1"></canvas>
 </div>
 
 <script type="module" src="~/js/platform.js"></script>
