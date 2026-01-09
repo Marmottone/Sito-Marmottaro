@@ -236,11 +236,48 @@ function initGame(level) {
       new Cartello(1725, worldHeight - 43, "Puoi passare attraverso il legno")
     ];
 
-    spines = [
-      new Spina(200, worldHeight - 70, 50, 60),
+    traguardo = new Traguardo(4855, worldHeight - 4900);
+  }
+  // --- CARICAMENTO LIVELLO 2 (NUOVO) ---
+  else if (level === 2) {
+    console.log("Caricamento Livello 2: Il Lago delle Spine");
+
+    platforms = [
+      // Piattaforma di partenza
+      new Piattaforma(0, worldHeight - 50, 400, 50, "erba", true),
+
+      // --- PISCINA D'ACQUA ---
+      // Bordo sinistro
+      new Piattaforma(400, worldHeight - 200, 50, 200, "roccia", true),
+      // ACQUA (Attraversabile)
+      new Piattaforma(450, worldHeight - 150, 600, 150, "acqua", false),
+      // Pavimento sotto l'acqua
+      new Piattaforma(450, worldHeight - 20, 600, 20, "terra", true),
+      // Bordo destro
+      new Piattaforma(1050, worldHeight - 200, 50, 200, "roccia", true),
+
+      // Piattaforme sospese post-acqua
+      new Piattaforma(1200, worldHeight - 300, 200, 20, "legno", false),
+      new Piattaforma(1500, worldHeight - 450, 200, 20, "legno", false),
     ];
 
-    traguardo = new Traguardo(4855, worldHeight - 4900);
+    // --- AGGIUNTA SPINE ---
+    spines = [
+      // Spine sul fondo della piscina (sotto l'acqua!)
+      new Spina(600, worldHeight - 60, 80, 40, "up"),
+      new Spina(800, worldHeight - 60, 80, 40, "up"),
+
+      // Spina sul soffitto dopo la piscina
+      new Spina(1250, worldHeight - 600, 80, 40, "down"),
+    ];
+
+    cartelli = [
+      new Cartello(200, worldHeight - 60, "Livello 2: Attento a non affogare!"),
+      new Cartello(1100, worldHeight - 210, "Ottima nuotata!")
+    ];
+
+    // Traguardo più vicino per testare
+    traguardo = new Traguardo(1600, worldHeight - 550);
   }
 }
 
@@ -261,7 +298,7 @@ function gameLoop(timestamp) {
         if (spina.collidesWith(player)) {
           console.log("Morta! Toccata una spina.");
 
-          handleDeath(); // <--- CAMBIARE QUESTO (Prima era restartLevel())
+          handleDeath();
           return;
         }
       }

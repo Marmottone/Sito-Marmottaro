@@ -8,15 +8,26 @@ export class Marmotta {
     // --- PARAMETRI FISICI ---
     this.width = 70;
     this.height = 70;
+
+    // Hitbox Standard (in piedi)
     this.hitboxWidth = 30;
     this.hitboxHeight = 57;
     this.hitboxOffsetX = 22;
 
+    // Hitbox Nuoto (Orizzontale)
+    this.swimHitboxWidth = 60;
+    this.swimHitboxHeight = 30;
+    this.swimHitboxOffsetX = 5;
+
     this.onGrass = false;
+    this.inWater = false;
+
     this.speed = 5;
     this.velX = 0;
     this.velY = 0;
     this.jumpStrength = -11.5;
+    this.swimStrength = -3.5;
+
     this.grounded = false;
     this.facingLeft = false;
 
@@ -29,6 +40,9 @@ export class Marmotta {
 
     this.spriteLand = new Image();
     this.spriteLand.src = "/images/SpriteMarmottaAtterraggio.png";
+
+    this.spriteSwim = new Image();
+    this.spriteSwim.src = "/images/SpriteMarmottaNuoto.png";
 
     this.currentSprite = this.spriteRun;
 
@@ -43,11 +57,14 @@ export class Marmotta {
     this.gameFrame = 0;
     this.staggerFrames = 5;
     this.maxFramesRun = 4;
+    this.maxFramesSwim = 4;
   }
 
   update(keys, platforms, worldWidth, worldHeight, canvasHeight) {
     let wasOnGrass = this.onGrass;
     this.onGrass = false;
+
+    this.inWater = false;
 
     if (this.grounded) {
       this.apexY = this.y;
@@ -61,26 +78,33 @@ export class Marmotta {
       if (this.landingTimer <= 0) this.isLanding = false;
     }
 
-    // MOVIMENTO
+    // --- MOVIMENTO ---
+    let currentSpeed = this.inWater ? this.speed * 0.7 : this.speed;
+
     if (this.isLanding) {
       this.velX = 0;
     } else {
       if (keys["KeyA"] || keys["ArrowLeft"]) {
-        this.velX = -this.speed;
+        this.velX = -currentSpeed;
         this.facingLeft = true;
       } else if (keys["KeyD"] || keys["ArrowRight"]) {
-        this.velX = this.speed;
+        this.velX = currentSpeed;
         this.facingLeft = false;
       } else {
         this.velX = 0;
       }
     }
 
-    // ANIMAZIONE
-    if (this.currentSprite === this.spriteRun) {
-      if (this.velX !== 0) {
+    // --- GESTIONE ANIMAZIONE FRAMES ---
+    if (this.currentSprite === this.spriteRun || this.currentSprite === this.spriteSwim) {
+      let isMoving = this.velX !== 0 || (this.inWater && Math.abs(this.velY) > 0.5);
+
+      if (isMoving) {
         this.gameFrame++;
-        if (this.gameFrame % this.staggerFrames === 0) {
+        let stagger = this.inWater ? this.staggerFrames * 2 : this.staggerFrames;
+
+        if (this.gameFrame % stagger === 0) {
+          // Nota: Assumiamo che entrambi abbiano 4 frame (maxFramesRun = maxFramesSwim = 4)
           if (this.frameX < this.maxFramesRun - 1) {
             this.frameX++;
           } else {
@@ -94,26 +118,46 @@ export class Marmotta {
       this.frameX = 0;
     }
 
-    // FISICA
-    if ((keys["Space"] || keys["ArrowUp"] || keys["KeyW"]) && this.grounded && !this.isLanding) {
-      this.velY = this.jumpStrength;
-      this.grounded = false;
+    // --- FISICA ---
+    if (keys["Space"] || keys["ArrowUp"] || keys["KeyW"]) {
+      if (this.inWater) {
+        this.velY = this.swimStrength;
+        this.grounded = false;
+      }
+      else if (this.grounded && !this.isLanding) {
+        this.velY = this.jumpStrength;
+        this.grounded = false;
+      }
     }
 
     if (!this.grounded) {
       if (this.y < this.apexY) this.apexY = this.y;
     }
 
-    this.velY += 0.4;
+    if (this.inWater) {
+      this.velY += 0.15;
+      if (this.velY > 3) this.velY = 3;
+    } else {
+      this.velY += 0.4;
+    }
+
     this.x += this.velX;
     this.y += this.velY;
     this.grounded = false;
 
+    // --- GESTIONE COLLISIONI ---
+    let currentHb = this.getHitbox();
+
     for (let plat of platforms) {
+      if (plat.type === "acqua") {
+        if (checkCollision(currentHb, plat)) {
+          this.inWater = true;
+        }
+        continue;
+      }
       this.resolveCollision(plat);
     }
 
-    // Aggiornato a 13px per coerenza con l'offset base
     if (wasOnGrass && !this.onGrass && !this.grounded) {
       this.y += 13;
     }
@@ -128,10 +172,14 @@ export class Marmotta {
       this.grounded = true;
     }
 
-    // SELEZIONE SPRITE
+    // --- SELEZIONE SPRITE ---
     if (this.isLanding) {
       this.currentSprite = this.spriteLand;
-    } else if (!this.grounded) {
+    }
+    else if (this.inWater) {
+      this.currentSprite = this.spriteSwim;
+    }
+    else if (!this.grounded) {
       if (this.velY < -1 || this.airTimer > 5) {
         this.currentSprite = this.spriteJump;
       } else {
@@ -143,6 +191,7 @@ export class Marmotta {
   }
 
   checkLanding(landingY) {
+    if (this.inWater) return;
     let fallDistance = landingY - this.apexY;
     if (fallDistance > 190) {
       this.isLanding = true;
@@ -200,13 +249,10 @@ export class Marmotta {
   }
 
   draw(ctx) {
-    // --- MODIFICA QUI ---
-    // Se è su erba, usiamo il tuo offset perfetto (22).
-    // Se NON è su erba (roccia/legno), usiamo 13 per spingerlo giù quanto basta a toccare terra.
     let currentOffset = this.onGrass ? 22 : 13;
+    if (this.inWater) currentOffset = 15;
 
     let visualY = this.y + currentOffset;
-
     let drawWidth = this.width;
     let drawHeight = this.height;
 
@@ -214,12 +260,23 @@ export class Marmotta {
 
     if (!this.currentSprite.complete || this.currentSprite.naturalWidth === 0) return;
 
+    // --- LOGICA DI RITAGLIO (SRC) ---
+
+    // 1. CORSA (Spritesheet ORIZZONTALE)
     if (this.currentSprite === this.spriteRun) {
       srcW = 170;
       srcH = 170;
-      srcX = this.frameX * srcW;
-      srcY = 0;
+      srcX = this.frameX * srcW; // Spostiamo la X
+      srcY = 0;                  // La Y è fissa
     }
+    // 2. NUOTO (Spritesheet VERTICALE) - MODIFICATO QUI
+    else if (this.currentSprite === this.spriteSwim) {
+      srcW = this.currentSprite.naturalWidth;      // Larghezza piena
+      srcH = this.currentSprite.naturalHeight / 4; // Altezza divisa per 4 frame
+      srcX = 0;                                    // La X è fissa
+      srcY = this.frameX * srcH;                   // Spostiamo la Y
+    }
+    // 3. ATTERRAGGIO
     else if (this.currentSprite === this.spriteLand) {
       srcW = this.currentSprite.naturalWidth;
       srcH = this.currentSprite.naturalHeight;
@@ -228,6 +285,7 @@ export class Marmotta {
       drawHeight = 55;
       visualY += (this.height - drawHeight);
     }
+    // 4. SALTO / STATICO
     else {
       srcW = this.currentSprite.naturalWidth;
       srcH = this.currentSprite.naturalHeight;
@@ -247,26 +305,51 @@ export class Marmotta {
     ctx.restore();
 
     // DEBUG HITBOX
-    //let hb = this.getHitbox();
-    //ctx.strokeStyle = "red";
-    //ctx.lineWidth = 1;
-    //ctx.strokeRect(hb.x, hb.y, hb.width, hb.height);
+    /*
+    let hb = this.getHitbox();
+    ctx.strokeStyle = this.inWater ? "blue" : "red";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(hb.x, hb.y, hb.width, hb.height);
+    */
   }
 
   getHitbox() {
     let currentOffsetX;
+    let w, h;
 
-    if (this.facingLeft) {
-      currentOffsetX = this.width - this.hitboxWidth - this.hitboxOffsetX;
-    } else {
-      currentOffsetX = this.hitboxOffsetX;
+    if (this.inWater) {
+      w = this.swimHitboxWidth;
+      h = this.swimHitboxHeight;
+
+      if (this.facingLeft) {
+        currentOffsetX = this.width - w - this.swimHitboxOffsetX;
+      } else {
+        currentOffsetX = this.swimHitboxOffsetX;
+      }
+
+      return {
+        x: this.x + currentOffsetX,
+        y: (this.y + this.height) - h - 15,
+        width: w,
+        height: h
+      };
     }
+    else {
+      w = this.hitboxWidth;
+      h = this.hitboxHeight;
 
-    return {
-      x: this.x + currentOffsetX,
-      y: (this.y + this.height) - this.hitboxHeight,
-      width: this.hitboxWidth,
-      height: this.hitboxHeight
-    };
+      if (this.facingLeft) {
+        currentOffsetX = this.width - w - this.hitboxOffsetX;
+      } else {
+        currentOffsetX = this.hitboxOffsetX;
+      }
+
+      return {
+        x: this.x + currentOffsetX,
+        y: (this.y + this.height) - h,
+        width: w,
+        height: h
+      };
+    }
   }
 }

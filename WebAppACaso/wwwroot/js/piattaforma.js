@@ -11,11 +11,15 @@ imgLegno.src = "/images/legno.png";
 const imgTerra = new Image();
 imgTerra.src = "/images/terra.png";
 
+const imgAcqua = new Image();
+imgAcqua.src = "/images/acqua.png";
+
 // Cache per salvare le texture rimpicciolite
 let patternErba = null;
 let patternRoccia = null;
 let patternLegno = null;
 let patternTerra = null;
+let patternAcqua = null;
 
 export class Piattaforma {
   constructor(x, y, width, height, type, isSolid) {
@@ -23,8 +27,8 @@ export class Piattaforma {
     this.y = y;
     this.width = width;
     this.height = height;
-    this.type = type;
-    this.isSolid = isSolid;
+    this.type = type;     // "erba", "roccia", "legno", "terra", "acqua"
+    this.isSolid = isSolid; // true = muro, false = attraversabile
   }
 
   draw(ctx) {
@@ -50,14 +54,26 @@ export class Piattaforma {
       if (!patternTerra) patternTerra = this.createPixelPattern(ctx, imgTerra, 40);
       pattern = patternTerra;
     }
+    // 5. ACQUA 
+    else if (this.type === "acqua" && imgAcqua.complete) {
+      // Dimensione 40px per il pattern dell'acqua
+      if (!patternAcqua) patternAcqua = this.createPixelPattern(ctx, imgAcqua, 40);
+      pattern = patternAcqua;
+    }
 
     // --- DISEGNO ---
     if (pattern) {
       ctx.save();
+
+      // Imposta il pattern come riempimento
       ctx.fillStyle = pattern;
 
+      // Gestione Trasparenza
       if (this.type === "legno") {
-        ctx.globalAlpha = 0.9;
+        ctx.globalAlpha = 0.9; // 90% visibile, 10% trasparente
+      }
+      else if (this.type === "acqua") {
+        ctx.globalAlpha = 0.6; // 60% visibile, 40% trasparente
       }
 
       // Allinea la texture alla posizione della piattaforma
@@ -66,8 +82,11 @@ export class Piattaforma {
 
       ctx.restore();
     } else {
-      // Fallback colore solido se l'immagine non è pronta o non esiste
-      ctx.fillStyle = this.type.startsWith("#") ? this.type : "#8B4513";
+      // Fallback colore solido se l'immagine non è pronta
+      if (this.type === "acqua") ctx.fillStyle = "rgba(0, 100, 255, 0.5)"; // Blu semitrasparente
+      else if (this.type.startsWith("#")) ctx.fillStyle = this.type;
+      else ctx.fillStyle = "#8B4513";
+
       ctx.fillRect(this.x, this.y, this.width, this.height);
     }
   }
