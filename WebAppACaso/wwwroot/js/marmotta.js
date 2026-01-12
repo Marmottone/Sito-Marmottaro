@@ -15,9 +15,9 @@ export class Marmotta {
     this.hitboxOffsetX = 22;
 
     // Hitbox Nuoto (Orizzontale)
-    this.swimHitboxWidth = 60;
-    this.swimHitboxHeight = 30;
-    this.swimHitboxOffsetX = 5;
+    this.swimHitboxWidth = 65;
+    this.swimHitboxHeight = 35;
+    this.swimHitboxOffsetX = 30;
 
     this.onGrass = false;
     this.inWater = false;
@@ -25,8 +25,10 @@ export class Marmotta {
     this.speed = 5;
     this.velX = 0;
     this.velY = 0;
+
     this.jumpStrength = -11.5;
-    this.swimStrength = -3.5;
+
+    this.swimStrength = -5;
 
     this.grounded = false;
     this.facingLeft = false;
@@ -64,8 +66,6 @@ export class Marmotta {
     let wasOnGrass = this.onGrass;
     this.onGrass = false;
 
-    this.inWater = false;
-
     if (this.grounded) {
       this.apexY = this.y;
       this.airTimer = 0;
@@ -101,10 +101,11 @@ export class Marmotta {
 
       if (isMoving) {
         this.gameFrame++;
-        let stagger = this.inWater ? this.staggerFrames * 2 : this.staggerFrames;
+
+        // Animazione più lenta in acqua
+        let stagger = this.inWater ? this.staggerFrames * 4 : this.staggerFrames;
 
         if (this.gameFrame % stagger === 0) {
-          // Nota: Assumiamo che entrambi abbiano 4 frame (maxFramesRun = maxFramesSwim = 4)
           if (this.frameX < this.maxFramesRun - 1) {
             this.frameX++;
           } else {
@@ -135,10 +136,10 @@ export class Marmotta {
     }
 
     if (this.inWater) {
-      this.velY += 0.15;
-      if (this.velY > 3) this.velY = 3;
+      this.velY += 0.6; 
+      if (this.velY > 1.5) this.velY = 1.5; // Velocità caduta massima bassa
     } else {
-      this.velY += 0.4;
+      this.velY += 0.4; // Gravità normale
     }
 
     this.x += this.velX;
@@ -148,15 +149,21 @@ export class Marmotta {
     // --- GESTIONE COLLISIONI ---
     let currentHb = this.getHitbox();
 
+    // Variabile temporanea per questo frame
+    let touchingWaterNow = false;
+
     for (let plat of platforms) {
       if (plat.type === "acqua") {
         if (checkCollision(currentHb, plat)) {
-          this.inWater = true;
+          touchingWaterNow = true;
         }
         continue;
       }
       this.resolveCollision(plat);
     }
+
+    // Aggiorniamo lo stato dell'acqua alla fine
+    this.inWater = touchingWaterNow;
 
     if (wasOnGrass && !this.onGrass && !this.grounded) {
       this.y += 13;
@@ -250,7 +257,7 @@ export class Marmotta {
 
   draw(ctx) {
     let currentOffset = this.onGrass ? 22 : 13;
-    if (this.inWater) currentOffset = 15;
+    if (this.inWater) currentOffset = 0;
 
     let visualY = this.y + currentOffset;
     let drawWidth = this.width;
@@ -261,22 +268,22 @@ export class Marmotta {
     if (!this.currentSprite.complete || this.currentSprite.naturalWidth === 0) return;
 
     // --- LOGICA DI RITAGLIO (SRC) ---
-
-    // 1. CORSA (Spritesheet ORIZZONTALE)
     if (this.currentSprite === this.spriteRun) {
       srcW = 170;
       srcH = 170;
-      srcX = this.frameX * srcW; // Spostiamo la X
-      srcY = 0;                  // La Y è fissa
+      srcX = this.frameX * srcW;
+      srcY = 0;
     }
-    // 2. NUOTO (Spritesheet VERTICALE) - MODIFICATO QUI
     else if (this.currentSprite === this.spriteSwim) {
-      srcW = this.currentSprite.naturalWidth;      // Larghezza piena
-      srcH = this.currentSprite.naturalHeight / 4; // Altezza divisa per 4 frame
-      srcX = 0;                                    // La X è fissa
-      srcY = this.frameX * srcH;                   // Spostiamo la Y
+      srcW = this.currentSprite.naturalWidth;
+      srcH = this.currentSprite.naturalHeight / 4;
+      srcX = 0;
+      srcY = this.frameX * srcH;
+
+      drawWidth = 125;
+      drawHeight = 60;
+      visualY = this.y + 10;
     }
-    // 3. ATTERRAGGIO
     else if (this.currentSprite === this.spriteLand) {
       srcW = this.currentSprite.naturalWidth;
       srcH = this.currentSprite.naturalHeight;
@@ -285,7 +292,6 @@ export class Marmotta {
       drawHeight = 55;
       visualY += (this.height - drawHeight);
     }
-    // 4. SALTO / STATICO
     else {
       srcW = this.currentSprite.naturalWidth;
       srcH = this.currentSprite.naturalHeight;
@@ -304,13 +310,11 @@ export class Marmotta {
     }
     ctx.restore();
 
-    // DEBUG HITBOX
-    /*
+    // DEBUG
     let hb = this.getHitbox();
     ctx.strokeStyle = this.inWater ? "blue" : "red";
     ctx.lineWidth = 2;
     ctx.strokeRect(hb.x, hb.y, hb.width, hb.height);
-    */
   }
 
   getHitbox() {
@@ -321,15 +325,18 @@ export class Marmotta {
       w = this.swimHitboxWidth;
       h = this.swimHitboxHeight;
 
+      let visualWidth = 125;
+      let offsetY = ((this.height - h) / 2) + 5;
+
       if (this.facingLeft) {
-        currentOffsetX = this.width - w - this.swimHitboxOffsetX;
+        currentOffsetX = visualWidth - w - this.swimHitboxOffsetX;
       } else {
         currentOffsetX = this.swimHitboxOffsetX;
       }
 
       return {
         x: this.x + currentOffsetX,
-        y: (this.y + this.height) - h - 15,
+        y: this.y + offsetY,
         width: w,
         height: h
       };

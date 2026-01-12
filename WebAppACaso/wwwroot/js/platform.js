@@ -25,7 +25,18 @@ let camera = { x: 0, y: 0 };
 
 // --- TIMER E SCORE ---
 let startTime = 0;
-let bestTime = localStorage.getItem("marmottaBestTime");
+let levelBestTimes = {};
+
+// Carichiamo subito i tempi salvati (se esistono)
+try {
+  const savedTimes = localStorage.getItem("marmottaBestTimesMap");
+  if (savedTimes) {
+    levelBestTimes = JSON.parse(savedTimes);
+  }
+} catch (e) {
+  console.error("Errore caricamento salvataggi:", e);
+  levelBestTimes = {};
+}
 
 // --- LIMITATORE FPS ---
 let lastTime = 0;
@@ -250,7 +261,7 @@ function initGame(level) {
       // Bordo sinistro
       new Piattaforma(400, worldHeight - 200, 50, 200, "roccia", true),
       // ACQUA (Attraversabile)
-      new Piattaforma(450, worldHeight - 150, 600, 150, "acqua", false),
+      new Piattaforma(450, worldHeight - 250, 600, 250, "acqua", false),
       // Pavimento sotto l'acqua
       new Piattaforma(450, worldHeight - 20, 600, 20, "terra", true),
       // Bordo destro
@@ -333,24 +344,34 @@ function handleWin() {
 
   let endTime = Date.now();
   let runTime = ((endTime - startTime) / 1000).toFixed(2);
+  let runTimeFloat = parseFloat(runTime);
 
-  // Calcolo Best Time
+  // Recuperiamo il vecchio best time per QUESTO livello specifico
+  let oldBest = levelBestTimes[currentLevel];
   let isNewRecord = false;
-  if (!bestTime || parseFloat(runTime) < parseFloat(bestTime)) {
-    bestTime = runTime;
-    localStorage.setItem("marmottaBestTime", bestTime);
+
+  // Se non c'è un vecchio tempo O se il nuovo è minore (migliore)
+  if (!oldBest || runTimeFloat < parseFloat(oldBest)) {
+    // Aggiorniamo l'oggetto in memoria
+    levelBestTimes[currentLevel] = runTime;
+
+    // Salviamo l'intero oggetto nel localStorage come stringa JSON
+    localStorage.setItem("marmottaBestTimesMap", JSON.stringify(levelBestTimes));
+
     isNewRecord = true;
+    oldBest = runTime; // Per visualizzarlo nel messaggio
   }
 
   // Prepara il messaggio
-  let msg = `Tempo: ${runTime}s`;
-  if (isNewRecord) msg += " (NUOVO RECORD!)";
-  else msg += ` (Best: ${bestTime}s)`;
+  let msg = `Livello ${currentLevel} Completato!\nTempo: ${runTime}s`;
+  if (isNewRecord) msg += "\n(NUOVO RECORD!)";
+  else msg += `\n(Best: ${oldBest}s)`;
 
   // Mostra l'overlay HTML
   const victoryScreen = document.getElementById('victory-screen');
   const victoryText = document.getElementById('victory-message');
 
+  // Usiamo innerText o innerHTML per gestire i ritorni a capo (\n)
   if (victoryText) victoryText.innerText = msg;
   if (victoryScreen) victoryScreen.style.display = 'flex';
 }
@@ -417,9 +438,14 @@ function draw() {
     let currentTime = ((Date.now() - startTime) / 1000).toFixed(2);
     ctx.fillText(`Tempo: ${currentTime}s`, canvas.width - 20, 70);
 
-    if (bestTime) {
+    let currentLevelBest = levelBestTimes[currentLevel];
+    if (currentLevelBest) {
       ctx.fillStyle = "#D35400";
-      ctx.fillText(`Best: ${bestTime}s`, canvas.width - 20, 100);
+      ctx.fillText(`Best Lv.${currentLevel}: ${currentLevelBest}s`, canvas.width - 20, 100);
+    } else {
+      // Opzionale: Se non c'è ancora un record
+      ctx.fillStyle = "#888";
+      ctx.fillText(`Best Lv.${currentLevel}: --`, canvas.width - 20, 100);
     }
   }
 }

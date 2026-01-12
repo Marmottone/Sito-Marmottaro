@@ -89,24 +89,28 @@
     ctx.restore(); // Ripristina lo stato (così non ruota tutto il resto del gioco)
 
     // --- DEBUG HITBOX ---
-    //ctx.strokeStyle = 'red';
-    //ctx.lineWidth = 2;
-    //for (const hb of this.hitboxes) {
-    //    ctx.strokeRect(this.x + hb.offsetX, this.y + hb.offsetY, hb.w, hb.h);
-    //}
+    ctx.strokeStyle = 'red';
+    ctx.lineWidth = 2;
+    for (const hb of this.hitboxes) {
+        ctx.strokeRect(this.x + hb.offsetX, this.y + hb.offsetY, hb.w, hb.h);
+    }
   }
 
   // Controlla la collisione
   collidesWith(player) {
+    // Recuperiamo la hitbox precisa (quella blu) invece di usare player.x/y generici
+    const playerHb = player.getHitbox();
+
     for (const hb of this.hitboxes) {
       const hbX = this.x + hb.offsetX;
       const hbY = this.y + hb.offsetY;
 
+      // Ora confrontiamo la hitbox della spina con la hitbox blu del player
       if (
-        player.x < hbX + hb.w &&
-        player.x + player.width > hbX &&
-        player.y < hbY + hb.h &&
-        player.y + player.height > hbY
+        playerHb.x < hbX + hb.w &&
+        playerHb.x + playerHb.width > hbX &&
+        playerHb.y < hbY + hb.h &&
+        playerHb.y + playerHb.height > hbY
       ) {
         return true;
       }
