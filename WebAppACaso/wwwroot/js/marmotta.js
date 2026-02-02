@@ -4,57 +4,34 @@ export class Marmotta {
   constructor(x, y) {
     this.x = x;
     this.y = y;
-
-    // --- PARAMETRI FISICI ---
     this.width = 70;
     this.height = 70;
 
-    // Hitbox Standard (in piedi)
-    this.hitboxWidth = 30;
-    this.hitboxHeight = 57;
-    this.hitboxOffsetX = 22;
-
-    // Hitbox Nuoto (Orizzontale)
-    this.swimHitboxWidth = 65;
-    this.swimHitboxHeight = 35;
-    this.swimHitboxOffsetX = 30;
+    // Hitbox
+    this.hitboxWidth = 30; this.hitboxHeight = 57; this.hitboxOffsetX = 22;
+    this.swimHitboxWidth = 65; this.swimHitboxHeight = 35; this.swimHitboxOffsetX = 30;
 
     this.onGrass = false;
     this.inWater = false;
-
     this.speed = 5;
     this.velX = 0;
     this.velY = 0;
-
     this.jumpStrength = -11.5;
-
     this.swimStrength = -5;
-
     this.grounded = false;
     this.facingLeft = false;
 
-    // --- SPRITES ---
-    this.spriteRun = new Image();
-    this.spriteRun.src = "/images/SpriteMarmotta.png";
-
-    this.spriteJump = new Image();
-    this.spriteJump.src = "/images/SpriteMarmottaSalto.png";
-
-    this.spriteLand = new Image();
-    this.spriteLand.src = "/images/SpriteMarmottaAtterraggio.png";
-
-    this.spriteSwim = new Image();
-    this.spriteSwim.src = "/images/SpriteMarmottaNuoto.png";
-
+    // Sprites
+    this.spriteRun = new Image(); this.spriteRun.src = "/images/SpriteMarmotta.png";
+    this.spriteJump = new Image(); this.spriteJump.src = "/images/SpriteMarmottaSalto.png";
+    this.spriteLand = new Image(); this.spriteLand.src = "/images/SpriteMarmottaAtterraggio.png";
+    this.spriteSwim = new Image(); this.spriteSwim.src = "/images/SpriteMarmottaNuoto.png";
     this.currentSprite = this.spriteRun;
 
-    // --- VARIABILI DI STATO ---
     this.apexY = y;
     this.isLanding = false;
     this.landingTimer = 0;
     this.airTimer = 0;
-
-    // --- ANIMAZIONE ---
     this.frameX = 0;
     this.gameFrame = 0;
     this.staggerFrames = 5;
@@ -65,6 +42,17 @@ export class Marmotta {
   update(keys, platforms, worldWidth, worldHeight, canvasHeight) {
     let wasOnGrass = this.onGrass;
     this.onGrass = false;
+
+    // --- 1. CONTROLLO PREVENTIVO ACQUA ---
+    let currentHb = this.getHitbox();
+    let touchingWaterNow = false;
+    for (let plat of platforms) {
+      if (plat.type === "acqua" && checkCollision(currentHb, plat)) {
+        touchingWaterNow = true;
+        break;
+      }
+    }
+    this.inWater = touchingWaterNow;
 
     if (this.grounded) {
       this.apexY = this.y;
@@ -78,9 +66,8 @@ export class Marmotta {
       if (this.landingTimer <= 0) this.isLanding = false;
     }
 
-    // --- MOVIMENTO ---
+    // --- 2. MOVIMENTO ORIZZONTALE ---
     let currentSpeed = this.inWater ? this.speed * 0.7 : this.speed;
-
     if (this.isLanding) {
       this.velX = 0;
     } else {
@@ -95,83 +82,108 @@ export class Marmotta {
       }
     }
 
-    // --- GESTIONE ANIMAZIONE FRAMES ---
+    // --- 3. ANIMAZIONE ---
     if (this.currentSprite === this.spriteRun || this.currentSprite === this.spriteSwim) {
-      let isMoving = this.velX !== 0 || (this.inWater && Math.abs(this.velY) > 0.5);
-
+      let isMoving = this.velX !== 0 || (this.inWater && Math.abs(this.velY) > 0.8);
       if (isMoving) {
         this.gameFrame++;
-
-        // Animazione più lenta in acqua
         let stagger = this.inWater ? this.staggerFrames * 4 : this.staggerFrames;
-
         if (this.gameFrame % stagger === 0) {
-          if (this.frameX < this.maxFramesRun - 1) {
-            this.frameX++;
-          } else {
-            this.frameX = 0;
-          }
+          this.frameX = (this.frameX + 1) % this.maxFramesRun;
         }
       } else {
         this.frameX = 0;
       }
-    } else {
-      this.frameX = 0;
     }
 
-    // --- FISICA ---
+    // --- 4. FISICA VERTICALE ---
     if (keys["Space"] || keys["ArrowUp"] || keys["KeyW"]) {
       if (this.inWater) {
         this.velY = this.swimStrength;
         this.grounded = false;
-      }
-      else if (this.grounded && !this.isLanding) {
+      } else if (this.grounded && !this.isLanding) {
         this.velY = this.jumpStrength;
         this.grounded = false;
       }
     }
 
-    if (!this.grounded) {
-      if (this.y < this.apexY) this.apexY = this.y;
+    let standingOnPlatform = false;
+
+    let hb = this.getHitbox();
+    for (let plat of platforms) {
+      if (plat.type !== "acqua") {
+        // controllo se sei sopra una piattaforma
+        if (
+          hb.y + hb.height <= plat.y + 5 &&
+          hb.y + hb.height >= plat.y - 5 &&
+          hb.x + hb.width > plat.x &&
+          hb.x < plat.x + plat.width
+        ) {
+          standingOnPlatform = true;
+          break;
+        }
+      }
     }
 
     if (this.inWater) {
-      this.velY += 0.6; 
-      if (this.velY > 1.5) this.velY = 1.5; // Velocità caduta massima bassa
-    } else {
-      this.velY += 0.4; // Gravità normale
+      // Controllo se stai cadendo su una piattaforma
+      let hb = this.getHitbox();
+      let standingOnPlatform = false;
+
+      for (let plat of platforms) {
+        if (plat.type !== "acqua") {
+          if (
+            this.velY >= 0 &&
+            hb.y + hb.height <= plat.y + 4 &&
+            hb.y + hb.height >= plat.y - 4 &&
+            hb.x + hb.width > plat.x &&
+            hb.x < plat.x + plat.width
+          ) {
+            standingOnPlatform = true;
+            break;
+          }
+        }
+      }
+
+      // Se sei sopra legno/roccia, blocca discesa
+      if (standingOnPlatform) {
+        this.velY = 0;
+      }
+
+      // Altrimenti gravità normale in acqua
+      else {
+        let diving = keys["KeyS"] || keys["ArrowDown"];
+
+        if (diving) {
+          this.velY += 1.2;
+          if (this.velY > 5) this.velY = 5;
+        } else {
+          this.velY += 0.6;
+          if (this.velY > 1.5) this.velY = 1.5;
+        }
+      }
+
     }
 
     this.x += this.velX;
     this.y += this.velY;
     this.grounded = false;
 
-    // --- GESTIONE COLLISIONI ---
-    let currentHb = this.getHitbox();
-
-    // Variabile temporanea per questo frame
-    let touchingWaterNow = false;
-
+    // --- 5. COLLISIONI SOLIDE ---
     for (let plat of platforms) {
-      if (plat.type === "acqua") {
-        if (checkCollision(currentHb, plat)) {
-          touchingWaterNow = true;
-        }
-        continue;
+      if (plat.type !== "acqua") {
+        this.resolveCollision(plat);
       }
-      this.resolveCollision(plat);
     }
 
-    // Aggiorniamo lo stato dell'acqua alla fine
-    this.inWater = touchingWaterNow;
-
-    if (wasOnGrass && !this.onGrass && !this.grounded) {
+    // Caduta dall'erba (correzione grafica)
+    if (wasOnGrass && !this.onGrass && !this.grounded && !this.inWater) {
       this.y += 13;
     }
 
+    // Limiti Mondo
     if (this.x < 0) this.x = 0;
     if (this.x + this.width > worldWidth) this.x = worldWidth - this.width;
-
     if (this.y + this.height > worldHeight) {
       this.y = worldHeight - this.height;
       this.checkLanding(this.y);
@@ -179,24 +191,21 @@ export class Marmotta {
       this.grounded = true;
     }
 
-    // --- SELEZIONE SPRITE ---
-    if (this.isLanding) {
-      this.currentSprite = this.spriteLand;
-    }
-    else if (this.inWater) {
-      this.currentSprite = this.spriteSwim;
-    }
+    // Selezione Sprite
+    this.updateSprite();
+  }
+
+  updateSprite() {
+    if (this.isLanding) this.currentSprite = this.spriteLand;
+    else if (this.inWater) this.currentSprite = this.spriteSwim;
     else if (!this.grounded) {
-      if (this.velY < -1 || this.airTimer > 5) {
-        this.currentSprite = this.spriteJump;
-      } else {
-        this.currentSprite = this.spriteRun;
-      }
+      this.currentSprite = (this.velY < -1 || this.airTimer > 5) ? this.spriteJump : this.spriteRun;
     } else {
       this.currentSprite = this.spriteRun;
     }
   }
 
+  // ... (mantieni i tuoi metodi checkLanding, resolveCollision, draw e getHitbox invariati) ...
   checkLanding(landingY) {
     if (this.inWater) return;
     let fallDistance = landingY - this.apexY;
@@ -262,45 +271,28 @@ export class Marmotta {
     let visualY = this.y + currentOffset;
     let drawWidth = this.width;
     let drawHeight = this.height;
-
     let srcX, srcY, srcW, srcH;
 
     if (!this.currentSprite.complete || this.currentSprite.naturalWidth === 0) return;
 
-    // --- LOGICA DI RITAGLIO (SRC) ---
     if (this.currentSprite === this.spriteRun) {
-      srcW = 170;
-      srcH = 170;
-      srcX = this.frameX * srcW;
-      srcY = 0;
-    }
-    else if (this.currentSprite === this.spriteSwim) {
+      srcW = 170; srcH = 170;
+      srcX = this.frameX * srcW; srcY = 0;
+    } else if (this.currentSprite === this.spriteSwim) {
       srcW = this.currentSprite.naturalWidth;
       srcH = this.currentSprite.naturalHeight / 4;
-      srcX = 0;
-      srcY = this.frameX * srcH;
-
-      drawWidth = 125;
-      drawHeight = 60;
-      visualY = this.y + 10;
-    }
-    else if (this.currentSprite === this.spriteLand) {
-      srcW = this.currentSprite.naturalWidth;
-      srcH = this.currentSprite.naturalHeight;
-      srcX = 0;
-      srcY = 0;
-      drawHeight = 55;
-      visualY += (this.height - drawHeight);
-    }
-    else {
-      srcW = this.currentSprite.naturalWidth;
-      srcH = this.currentSprite.naturalHeight;
-      srcX = 0;
-      srcY = 0;
+      srcX = 0; srcY = this.frameX * srcH;
+      drawWidth = 125; drawHeight = 60; visualY = this.y + 10;
+    } else if (this.currentSprite === this.spriteLand) {
+      srcW = this.currentSprite.naturalWidth; srcH = this.currentSprite.naturalHeight;
+      srcX = 0; srcY = 0;
+      drawHeight = 55; visualY += (this.height - drawHeight);
+    } else {
+      srcW = this.currentSprite.naturalWidth; srcH = this.currentSprite.naturalHeight;
+      srcX = 0; srcY = 0;
     }
 
     ctx.save();
-
     if (this.facingLeft) {
       ctx.translate(this.x + drawWidth, visualY);
       ctx.scale(-1, 1);
@@ -309,54 +301,20 @@ export class Marmotta {
       ctx.drawImage(this.currentSprite, srcX, srcY, srcW, srcH, this.x, visualY, drawWidth, drawHeight);
     }
     ctx.restore();
-
-    // DEBUG
-    let hb = this.getHitbox();
-    ctx.strokeStyle = this.inWater ? "blue" : "red";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(hb.x, hb.y, hb.width, hb.height);
   }
 
   getHitbox() {
-    let currentOffsetX;
     let w, h;
-
     if (this.inWater) {
-      w = this.swimHitboxWidth;
-      h = this.swimHitboxHeight;
-
+      w = this.swimHitboxWidth; h = this.swimHitboxHeight;
       let visualWidth = 125;
       let offsetY = ((this.height - h) / 2) + 5;
-
-      if (this.facingLeft) {
-        currentOffsetX = visualWidth - w - this.swimHitboxOffsetX;
-      } else {
-        currentOffsetX = this.swimHitboxOffsetX;
-      }
-
-      return {
-        x: this.x + currentOffsetX,
-        y: this.y + offsetY,
-        width: w,
-        height: h
-      };
-    }
-    else {
-      w = this.hitboxWidth;
-      h = this.hitboxHeight;
-
-      if (this.facingLeft) {
-        currentOffsetX = this.width - w - this.hitboxOffsetX;
-      } else {
-        currentOffsetX = this.hitboxOffsetX;
-      }
-
-      return {
-        x: this.x + currentOffsetX,
-        y: (this.y + this.height) - h,
-        width: w,
-        height: h
-      };
+      let currentOffsetX = this.facingLeft ? (visualWidth - w - this.swimHitboxOffsetX) : this.swimHitboxOffsetX;
+      return { x: this.x + currentOffsetX, y: this.y + offsetY, width: w, height: h };
+    } else {
+      w = this.hitboxWidth; h = this.hitboxHeight;
+      let currentOffsetX = this.facingLeft ? (this.width - w - this.hitboxOffsetX) : this.hitboxOffsetX;
+      return { x: this.x + currentOffsetX, y: (this.y + this.height) - h, width: w, height: h };
     }
   }
 }

@@ -4,103 +4,52 @@ import { Traguardo } from './traguardo.js';
 import { Cartello } from './cartello.js';
 import { Spina } from './spine.js';
 
-// --- CONFIGURAZIONE CANVAS ---
 const canvas = document.getElementById("canvas1");
 const ctx = canvas.getContext("2d");
-
-// --- DIMENSIONI FISSE DELLO SCHERMO DI GIOCO ---
-// Impostiamo una risoluzione fissa così non si "spalma" su schermi grandi
 canvas.width = 1024;
 canvas.height = 576;
 
-// Dimensioni Mondo (Livello intero)
 const worldWidth = 5000;
 const worldHeight = 5000;
 
-// Variabili Globali di Stato
 let gameRunning = false;
 let animationId;
-const keys = {};
-let camera = { x: 0, y: 0 };
-
-// --- TIMER E SCORE ---
-let startTime = 0;
-let levelBestTimes = {};
-
-// Carichiamo subito i tempi salvati (se esistono)
-try {
-  const savedTimes = localStorage.getItem("marmottaBestTimesMap");
-  if (savedTimes) {
-    levelBestTimes = JSON.parse(savedTimes);
-  }
-} catch (e) {
-  console.error("Errore caricamento salvataggi:", e);
-  levelBestTimes = {};
-}
-
-// --- LIMITATORE FPS ---
 let lastTime = 0;
 const fps = 60;
 const interval = 1000 / fps;
 
-// --- OGGETTI DI GIOCO (Inizializzati vuoti) ---
-let player;
-let platforms = [];
-let cartelli = [];
-let spines = []
-let traguardo;
+const keys = {};
+let camera = { x: 0, y: 0 };
+let player, platforms = [], cartelli = [], spines = [], traguardo, startTime = 0;
+let levelBestTimes = JSON.parse(localStorage.getItem("marmottaBestTimesMap") || "{}");
+let currentLevel = 1;
 
-// Gestione Input
 window.addEventListener("keydown", e => keys[e.code] = true);
 window.addEventListener("keyup", e => keys[e.code] = false);
 
-
-// --- FUNZIONE DI AVVIO (Chiamata dal bottone HTML) ---
-// Variabile per tenere traccia del livello attuale
-let currentLevel = 1;
-
-// --- FUNZIONE DI AVVIO (Chiamata dal bottone HTML) ---
 window.startGame = function (level) {
-  currentLevel = level; // Salviamo il livello selezionato
-  console.log("Avvio livello: " + level);
+  currentLevel = level;
+  gameRunning = false;
+  if (animationId) cancelAnimationFrame(animationId);
 
-  // 1. Gestione Schermate
-  const menu = document.getElementById('menu-screen');
-  const victory = document.getElementById('victory-screen');
-  const gameover = document.getElementById('gameover-screen');
-
-  if (menu) menu.style.display = 'none';       // Nascondi Menu
-  if (victory) victory.style.display = 'none'; // Nascondi Vittoria (se aperta)
-  if (gameover) gameover.style.display = 'none';
-
-  // 2. Mostra il canvas
+  document.getElementById('menu-screen').style.display = 'none';
+  document.getElementById('victory-screen').style.display = 'none';
+  document.getElementById('gameover-screen').style.display = 'none';
   canvas.style.display = 'block';
 
-  // 3. Inizializza il gioco
   initGame(level);
-
-  // 4. Avvia il loop se non è già attivo
-  if (!gameRunning) {
-    gameRunning = true;
-    lastTime = 0;
-    gameLoop(0);
-  }
+  gameRunning = true;
+  lastTime = performance.now();
+  requestAnimationFrame(gameLoop);
 };
 
-
-// --- INIZIALIZZAZIONE DEL LIVELLO ---
 function initGame(level) {
   startTime = Date.now();
-  player = new Marmotta(50, worldHeight - 70);
+  platforms = []; cartelli = []; spines = [];
 
-  platforms = [];
-  cartelli = [];
-  spines = []
-
-  // CARICAMENTO LIVELLO 1
   if (level === 1) {
+    player = new Marmotta(50, worldHeight - 70);
 
-    // --- PIATTAFORME ---
     platforms = [
 
       // Terreno
@@ -248,204 +197,189 @@ function initGame(level) {
     ];
 
     traguardo = new Traguardo(4855, worldHeight - 4900);
-  }
-  // --- CARICAMENTO LIVELLO 2 (NUOVO) ---
-  else if (level === 2) {
-    console.log("Caricamento Livello 2: Il Lago delle Spine");
+  } else if (level === 2) {
+    //player = new Marmotta(100, worldHeight - 4900);
+    player = new Marmotta(1170, worldHeight - 2600);
 
     platforms = [
-      // Piattaforma di partenza
-      new Piattaforma(0, worldHeight - 50, 400, 50, "erba", true),
+      // --- Acqua ---
+      new Piattaforma(0, worldHeight - 4700, 5000, 4700, "acqua", false),
 
-      // --- PISCINA D'ACQUA ---
-      // Bordo sinistro
-      new Piattaforma(400, worldHeight - 200, 50, 200, "roccia", true),
-      // ACQUA (Attraversabile)
-      new Piattaforma(450, worldHeight - 250, 600, 250, "acqua", false),
-      // Pavimento sotto l'acqua
-      new Piattaforma(450, worldHeight - 20, 600, 20, "terra", true),
-      // Bordo destro
-      new Piattaforma(1050, worldHeight - 200, 50, 200, "roccia", true),
+      // --- Terra ed Erba ---
+      new Piattaforma(0, worldHeight - 4795, 500, 20, "erba", true),
+      new Piattaforma(0, worldHeight - 4775, 500, 20, "terra", true),
+      new Piattaforma(500, worldHeight - 4800, 350, 20, "erba", true),
+      new Piattaforma(500, worldHeight - 4780, 350, 20, "terra", true),
 
-      // Piattaforme sospese post-acqua
-      new Piattaforma(1200, worldHeight - 300, 200, 20, "legno", false),
-      new Piattaforma(1500, worldHeight - 450, 200, 20, "legno", false),
+      // --- Legno ---
+      new Piattaforma(1049, worldHeight - 3022, 278, 20, "legno", false),
+
+      // --- Roccia ---
+      new Piattaforma(1220, worldHeight - 5000, 150, 140, "roccia", true),
+      new Piattaforma(1370, worldHeight - 5000, 150, 285, "roccia", true),
+      new Piattaforma(1520, worldHeight - 5000, 3480, 340, "roccia", true),
+      new Piattaforma(0, worldHeight - 4750, 500, 250, "roccia", true),
+      new Piattaforma(500, worldHeight - 4755, 390, 250, "roccia", true),
+      new Piattaforma(570, worldHeight - 4505, 390, 250, "roccia", true),
+      new Piattaforma(960, worldHeight - 4409, 110, 250, "roccia", true),
+      new Piattaforma(1070, worldHeight - 4340, 390, 250, "roccia", true),
+      new Piattaforma(1460, worldHeight - 4280, 390, 250, "roccia", true),
+      new Piattaforma(1850, worldHeight - 4520, 150, 490, "roccia", true),
+      new Piattaforma(2000, worldHeight - 4081, 390, 80, "roccia", true),
+      new Piattaforma(2200, worldHeight - 4660, 150, 390, "roccia", true),
+      new Piattaforma(2390, worldHeight - 4135, 330, 105, "roccia", true),
+      new Piattaforma(2615, worldHeight - 4265, 260, 135, "roccia", true),
+      new Piattaforma(2730, worldHeight - 4370, 280, 105, "roccia", true),
+      new Piattaforma(2835, worldHeight - 4470, 1620, 105, "roccia", true),
+      new Piattaforma(4255, worldHeight - 4365, 280, 105, "roccia", true),
+      new Piattaforma(4370, worldHeight - 4260, 220, 480, "roccia", true),
+      new Piattaforma(4885, worldHeight - 4660, 115, 1020, "roccia", true),
+      new Piattaforma(4700, worldHeight - 3640, 300, 190, "roccia", true),
+      new Piattaforma(4485, worldHeight - 3590, 215, 135, "roccia", true),
+      new Piattaforma(4270, worldHeight - 3520, 215, 125, "roccia", true),
+      new Piattaforma(2930, worldHeight - 3435, 1340, 105, "roccia", true),
+      new Piattaforma(2670, worldHeight - 3560, 260, 170, "roccia", true),
+      new Piattaforma(2410, worldHeight - 3670, 260, 170, "roccia", true),
+      new Piattaforma(1770, worldHeight - 3725, 640, 120, "roccia", true),
+      new Piattaforma(2670, worldHeight - 3560, 260, 170, "roccia", true),
+      new Piattaforma(1275, worldHeight - 3780, 495, 398, "roccia", true),
+      new Piattaforma(985, worldHeight - 3840, 290, 350, "roccia", true),
+      new Piattaforma(780, worldHeight - 3905, 210, 400, "roccia", true),
+      new Piattaforma(630, worldHeight - 3875, 250, 500, "roccia", true),
+      new Piattaforma(2670, worldHeight - 3560, 260, 170, "roccia", true),
+      new Piattaforma(851, worldHeight - 3516, 665, 135, "roccia", true),
+      new Piattaforma(480, worldHeight - 3465, 350, 490, "roccia", true),
+      new Piattaforma(395, worldHeight - 2980, 600, 335, "roccia", true),
+      new Piattaforma(539, worldHeight - 2724, 480, 140, "roccia", true),
+      new Piattaforma(917, worldHeight - 3054, 150, 335, "roccia", true),
+      new Piattaforma(1413, worldHeight - 3390, 150, 340, "roccia", true),
+      new Piattaforma(1310, worldHeight - 3054, 150, 335, "roccia", true),
+      new Piattaforma(0, worldHeight - 4500, 50, 1975, "roccia", true),
+      new Piattaforma(0, worldHeight - 2525, 150, 300, "roccia", true),
+      new Piattaforma(150, worldHeight - 2360, 260, 150, "roccia", true),
+      new Piattaforma(410, worldHeight - 2324, 740, 135, "roccia", true),
+      new Piattaforma(1147, worldHeight - 2344, 615, 135, "roccia", true),
+      new Piattaforma(1349, worldHeight - 2720, 665, 135, "roccia", true),
+      new Piattaforma(1761, worldHeight - 2364, 1215, 135, "roccia", true),
+      new Piattaforma(2010, worldHeight - 2680, 960, 135, "roccia", true),
+      new Piattaforma(185, worldHeight - 4210, 50, 270, "roccia", true),
+      new Piattaforma(135, worldHeight - 3580, 50, 270, "roccia", true),
+      new Piattaforma(270, worldHeight - 3045, 50, 270, "roccia", true),
+      new Piattaforma(435, worldHeight - 3905, 50, 270, "roccia", true),
+      new Piattaforma(2735, worldHeight - 2810, 480, 135, "roccia", true),
+      new Piattaforma(2976, worldHeight - 2318, 480, 135, "roccia", true),
+      new Piattaforma(3215, worldHeight - 2890, 480, 135, "roccia", true),
+      new Piattaforma(3455, worldHeight - 2280, 480, 135, "roccia", true),
+      new Piattaforma(3930, worldHeight - 2235, 550, 135, "roccia", true),
+      new Piattaforma(3695, worldHeight - 2935, 935, 135, "roccia", true),
+      new Piattaforma(4145, worldHeight - 2585, 340, 115, "roccia", true),
+      new Piattaforma(4630, worldHeight - 2880, 370, 140, "roccia", true),
+      new Piattaforma(4910, worldHeight - 2740, 90, 1275, "roccia", true),
+      new Piattaforma(4480, worldHeight - 2175, 90, 335, "roccia", true),
+      new Piattaforma(4525, worldHeight - 1840, 90, 710, "roccia", true),
+      new Piattaforma(4850, worldHeight - 1465, 150, 720, "roccia", true),
+      new Piattaforma(4520, worldHeight - 750, 480, 750, "roccia", true),
+      new Piattaforma(4045, worldHeight - 685, 480, 685, "roccia", true),
+      new Piattaforma(4050, worldHeight - 1200, 480, 135, "roccia", true),
+      new Piattaforma(3795, worldHeight - 627, 255, 627, "roccia", true),
+      new Piattaforma(3820, worldHeight - 1255, 240, 135, "roccia", true),
+      new Piattaforma(3620, worldHeight - 1515, 205, 305, "roccia", true),
+      new Piattaforma(3620, worldHeight - 525, 175, 525, "roccia", true),
+      new Piattaforma(3270, worldHeight - 320, 350, 320, "roccia", true),
+      new Piattaforma(2925, worldHeight - 255, 345, 255, "roccia", true),
+      new Piattaforma(950, worldHeight - 190, 1985, 190, "roccia", true),
+      new Piattaforma(620, worldHeight - 280, 335, 280, "roccia", true),
+      new Piattaforma(370, worldHeight - 525, 250, 525, "roccia", true),
+      new Piattaforma(0, worldHeight - 755, 370, 755, "roccia", true),
+      new Piattaforma(3280, worldHeight - 1650, 345, 190, "roccia", true),
+      new Piattaforma(2940, worldHeight - 1719, 345, 190, "roccia", true),
+      new Piattaforma(990, worldHeight - 1810, 1950, 195, "roccia", true),
+      new Piattaforma(650, worldHeight - 1760, 345, 190, "roccia", true),
+      new Piattaforma(390, worldHeight - 1650, 260, 300, "roccia", true),
+      new Piattaforma(0, worldHeight - 1505, 400, 300, "roccia", true),
+      new Piattaforma(1660, worldHeight - 1615, 175, 305, "roccia", true),
+      new Piattaforma(2090, worldHeight - 495, 175, 305, "roccia", true),
+      new Piattaforma(1125, worldHeight - 400, 270, 215, "roccia", true),
+      new Piattaforma(1130, worldHeight - 1615, 270, 800, "roccia", true),
+      new Piattaforma(3300, worldHeight - 1180, 80, 305, "roccia", true),
+      new Piattaforma(2910, worldHeight - 755, 80, 305, "roccia", true),
+      new Piattaforma(2440, worldHeight - 1410, 80, 305, "roccia", true),
+      new Piattaforma(1865, worldHeight - 905, 80, 305, "roccia", true),
+      new Piattaforma(710, worldHeight - 1040, 80, 305, "roccia", true),
+      new Piattaforma(800, worldHeight - 3385, 150, 410, "roccia", true),
     ];
 
-    // --- AGGIUNTA SPINE ---
-    spines = [
-      // Spine sul fondo della piscina (sotto l'acqua!)
-      new Spina(600, worldHeight - 60, 80, 40, "up"),
-      new Spina(800, worldHeight - 60, 80, 40, "up"),
-
-      // Spina sul soffitto dopo la piscina
-      new Spina(1250, worldHeight - 600, 80, 40, "down"),
-    ];
-
-    cartelli = [
-      new Cartello(200, worldHeight - 60, "Livello 2: Attento a non affogare!"),
-      new Cartello(1100, worldHeight - 210, "Ottima nuotata!")
-    ];
-
-    // Traguardo più vicino per testare
-    traguardo = new Traguardo(1600, worldHeight - 550);
+    traguardo = new Traguardo(130, worldHeight - 980);
   }
 }
 
-// --- CICLO DI GIOCO ---
 function gameLoop(timestamp) {
   if (!gameRunning) return;
-
   const deltaTime = timestamp - lastTime;
 
   if (deltaTime > interval) {
     lastTime = timestamp - (deltaTime % interval);
 
-    // Update Player
     if (player) {
-      player.update(keys, platforms, worldWidth, worldHeight, worldHeight);
-
-      for (const spina of spines) {
-        if (spina.collidesWith(player)) {
-          console.log("Morta! Toccata una spina.");
-
-          handleDeath();
-          return;
-        }
-      }
+      player.update(keys, platforms, worldWidth, worldHeight);
+      spines.forEach(s => { if (s.collidesWith(player)) handleDeath(); });
     }
 
-    // Check Traguardo (VITTORIA)
-    if (traguardo && player && traguardo.update(player)) {
-      handleWin();
-      return; // Interrompe il loop corrente
-    }
+    if (traguardo && player && traguardo.update(player)) handleWin();
 
-    // Update Camera
     if (player) {
-      camera.x = player.x - canvas.width / 2;
-      camera.y = player.y - canvas.height / 2;
-
-      // Limiti Camera (Clamping)
-      if (camera.x < 0) camera.x = 0;
-      if (camera.x > worldWidth - canvas.width) camera.x = worldWidth - canvas.width;
-      if (camera.y < 0) camera.y = 0;
-      if (camera.y > worldHeight - canvas.height) camera.y = worldHeight - canvas.height;
+      camera.x = Math.max(0, Math.min(player.x - canvas.width / 2, worldWidth - canvas.width));
+      camera.y = Math.max(0, Math.min(player.y - canvas.height / 2, worldHeight - canvas.height));
     }
-
     draw();
   }
   animationId = requestAnimationFrame(gameLoop);
 }
 
-// --- NUOVA GESTIONE VITTORIA (Niente più alert!) ---
-function handleWin() {
-  gameRunning = false; // Ferma il gioco
-
-  let endTime = Date.now();
-  let runTime = ((endTime - startTime) / 1000).toFixed(2);
-  let runTimeFloat = parseFloat(runTime);
-
-  // Recuperiamo il vecchio best time per QUESTO livello specifico
-  let oldBest = levelBestTimes[currentLevel];
-  let isNewRecord = false;
-
-  // Se non c'è un vecchio tempo O se il nuovo è minore (migliore)
-  if (!oldBest || runTimeFloat < parseFloat(oldBest)) {
-    // Aggiorniamo l'oggetto in memoria
-    levelBestTimes[currentLevel] = runTime;
-
-    // Salviamo l'intero oggetto nel localStorage come stringa JSON
-    localStorage.setItem("marmottaBestTimesMap", JSON.stringify(levelBestTimes));
-
-    isNewRecord = true;
-    oldBest = runTime; // Per visualizzarlo nel messaggio
-  }
-
-  // Prepara il messaggio
-  let msg = `Livello ${currentLevel} Completato!\nTempo: ${runTime}s`;
-  if (isNewRecord) msg += "\n(NUOVO RECORD!)";
-  else msg += `\n(Best: ${oldBest}s)`;
-
-  // Mostra l'overlay HTML
-  const victoryScreen = document.getElementById('victory-screen');
-  const victoryText = document.getElementById('victory-message');
-
-  // Usiamo innerText o innerHTML per gestire i ritorni a capo (\n)
-  if (victoryText) victoryText.innerText = msg;
-  if (victoryScreen) victoryScreen.style.display = 'flex';
-}
-
-function handleDeath() {
-  gameRunning = false; // Ferma il gioco
-  const gameover = document.getElementById('gameover-screen');
-  if (gameover) gameover.style.display = 'flex'; // Mostra la schermata rossa
-}
-
-// --- FUNZIONI BOTTONI VITTORIA ---
-window.restartLevel = function () {
-  // TRUCCO FONDAMENTALE:
-  // Impostiamo gameRunning a false. In questo modo, quando chiamiamo startGame,
-  // lui entrerà nell'IF e farà ripartire il gameLoop(0).
-  gameRunning = false; 
-  
-  window.startGame(currentLevel);
-};
-
-window.backToMenu = function () {
-  gameRunning = false;
-
-  const victory = document.getElementById('victory-screen');
-  const gameover = document.getElementById('gameover-screen'); // <--- NUOVO
-  const canvasEl = document.getElementById('canvas1');
-  const menu = document.getElementById('menu-screen');
-
-  if (victory) victory.style.display = 'none';
-  if (gameover) gameover.style.display = 'none'; // <--- NUOVO
-  if (canvasEl) canvasEl.style.display = 'none';
-  if (menu) menu.style.display = 'flex';
-};
-
-// --- DISEGNO ---
 function draw() {
-  // 1. SFONDO CIELO (Risolve il problema dello sfondo grigio)
   ctx.fillStyle = "#87CEEB";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  // 2. MONDO DI GIOCO
   ctx.save();
   ctx.translate(-camera.x, -camera.y);
-
   platforms.forEach(p => p.draw(ctx));
   cartelli.forEach(c => c.draw(ctx));
   spines.forEach(s => s.draw(ctx));
   if (traguardo) traguardo.draw(ctx);
   if (player) player.draw(ctx);
-
   ctx.restore();
-
-  // 3. HUD (Interfaccia)
-  if (player) {
-    let valoreCalcolato = Math.max(0, (worldHeight - (player.y + player.height)) / 10);
-    let altezzaStringa = valoreCalcolato.toFixed(1);
-
-    ctx.fillStyle = "black";
-    ctx.font = "bold 24px Arial";
-    ctx.textAlign = "right";
-
-    ctx.fillText(`Altezza: ${altezzaStringa}m`, canvas.width - 20, 40);
-
-    let currentTime = ((Date.now() - startTime) / 1000).toFixed(2);
-    ctx.fillText(`Tempo: ${currentTime}s`, canvas.width - 20, 70);
-
-    let currentLevelBest = levelBestTimes[currentLevel];
-    if (currentLevelBest) {
-      ctx.fillStyle = "#D35400";
-      ctx.fillText(`Best Lv.${currentLevel}: ${currentLevelBest}s`, canvas.width - 20, 100);
-    } else {
-      // Opzionale: Se non c'è ancora un record
-      ctx.fillStyle = "#888";
-      ctx.fillText(`Best Lv.${currentLevel}: --`, canvas.width - 20, 100);
-    }
-  }
+  drawHUD();
 }
+
+function drawHUD() {
+  if (!player) return;
+  ctx.fillStyle = "black";
+  ctx.font = "bold 24px Arial";
+  ctx.textAlign = "right";
+  let altezza = ((worldHeight - (player.y + player.height)) / 10).toFixed(1);
+  ctx.fillText(`Altezza: ${altezza}m`, canvas.width - 20, 40);
+  let tempo = ((Date.now() - startTime) / 1000).toFixed(2);
+  ctx.fillText(`Tempo: ${tempo}s`, canvas.width - 20, 70);
+}
+
+function handleWin() {
+  gameRunning = false;
+  let runTime = ((Date.now() - startTime) / 1000).toFixed(2);
+  levelBestTimes[currentLevel] = Math.min(parseFloat(runTime), parseFloat(levelBestTimes[currentLevel] || 999));
+  localStorage.setItem("marmottaBestTimesMap", JSON.stringify(levelBestTimes));
+  document.getElementById('victory-message').innerText = `Tempo: ${runTime}s`;
+  document.getElementById('victory-screen').style.display = 'flex';
+}
+
+function handleDeath() {
+  gameRunning = false;
+  document.getElementById('gameover-screen').style.display = 'flex';
+}
+
+window.restartLevel = () => window.startGame(currentLevel);
+window.backToMenu = () => {
+  gameRunning = false;
+  document.getElementById('victory-screen').style.display = 'none';
+  document.getElementById('gameover-screen').style.display = 'none';
+  canvas.style.display = 'none';
+  document.getElementById('menu-screen').style.display = 'flex';
+};
