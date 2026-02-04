@@ -11,6 +11,10 @@ export class Marmotta {
     this.hitboxWidth = 30; this.hitboxHeight = 57; this.hitboxOffsetX = 22;
     this.swimHitboxWidth = 65; this.swimHitboxHeight = 35; this.swimHitboxOffsetX = 30;
 
+    // Delay cambio sprites
+    this.waterPersistenceTimer = 0;
+    this.waterDelayFrames = 13;
+
     this.onGrass = false;
     this.inWater = false;
     this.speed = 5;
@@ -46,14 +50,36 @@ export class Marmotta {
     // --- 1. CONTROLLO PREVENTIVO ACQUA ---
     let currentHb = this.getHitbox();
     let touchingWaterNow = false;
+    let nearWaterSurface = false;
+
     for (let plat of platforms) {
       if (plat.type === "acqua" && checkCollision(currentHb, plat)) {
         touchingWaterNow = true;
+
+        // Se la testa della marmotta (hb.y) è vicina all'inizio della piattaforma acqua (plat.y)
+        // o se la marmotta è sommersa per meno di 20 pixel, considerala in "superficie"
+        if (currentHb.y <= plat.y + 10) {
+          nearWaterSurface = true;
+        }
         break;
       }
     }
     this.inWater = touchingWaterNow;
 
+    // Gestione del Delay (Isteresi) per evitare scatti dello sprite
+    if (touchingWaterNow) {
+      this.waterPersistenceTimer = this.waterDelayFrames;
+      this.inWater = true;
+    } else {
+      if (this.waterPersistenceTimer > 0) {
+        this.waterPersistenceTimer--;
+        this.inWater = true; // Resta "visivamente" in acqua finché il timer non scade
+      } else {
+        this.inWater = false;
+      }
+    }
+
+    // --- STATO TERRA/ARIA ---
     if (this.grounded) {
       this.apexY = this.y;
       this.airTimer = 0;
@@ -83,23 +109,27 @@ export class Marmotta {
     }
 
     // --- 3. ANIMAZIONE ---
-    if (this.currentSprite === this.spriteRun || this.currentSprite === this.spriteSwim) {
-      let isMoving = this.velX !== 0 || (this.inWater && Math.abs(this.velY) > 0.8);
-      if (isMoving) {
+    let isMoving = this.velX !== 0 || (this.inWater && Math.abs(this.velY) > 0.8);
+    if (isMoving && (this.currentSprite === this.spriteRun || this.currentSprite === this.spriteSwim)) {
         this.gameFrame++;
         let stagger = this.inWater ? this.staggerFrames * 4 : this.staggerFrames;
         if (this.gameFrame % stagger === 0) {
           this.frameX = (this.frameX + 1) % this.maxFramesRun;
         }
-      } else {
-        this.frameX = 0;
-      }
+    } else {
+      this.frameX = 0;
     }
 
-    // --- 4. FISICA VERTICALE ---
+    // --- 4. INPUT VERTICALE (SALTO / NUOTO) ---
     if (keys["Space"] || keys["ArrowUp"] || keys["KeyW"]) {
       if (this.inWater) {
-        this.velY = this.swimStrength;
+        // SE è in acqua ma vicina alla superficie, permetti un salto "terrestre" 
+        // per uscire con slancio, altrimenti applica il nuoto normale.
+        if (nearWaterSurface) {
+          this.velY = this.jumpStrength * 5.5; // 90% del salto normale per bilanciare l'attrito
+        } else {
+          this.velY = this.swimStrength;
+        }
         this.grounded = false;
       } else if (this.grounded && !this.isLanding) {
         this.velY = this.jumpStrength;
@@ -107,69 +137,28 @@ export class Marmotta {
       }
     }
 
-    let standingOnPlatform = false;
-
-    let hb = this.getHitbox();
-    for (let plat of platforms) {
-      if (plat.type !== "acqua") {
-        // controllo se sei sopra una piattaforma
-        if (
-          hb.y + hb.height <= plat.y + 5 &&
-          hb.y + hb.height >= plat.y - 5 &&
-          hb.x + hb.width > plat.x &&
-          hb.x < plat.x + plat.width
-        ) {
-          standingOnPlatform = true;
-          break;
-        }
-      }
-    }
-
+    // --- 5. FISICA E GRAVITÀ ---
     if (this.inWater) {
-      // Controllo se stai cadendo su una piattaforma
-      let hb = this.getHitbox();
-      let standingOnPlatform = false;
-
-      for (let plat of platforms) {
-        if (plat.type !== "acqua") {
-          if (
-            this.velY >= 0 &&
-            hb.y + hb.height <= plat.y + 4 &&
-            hb.y + hb.height >= plat.y - 4 &&
-            hb.x + hb.width > plat.x &&
-            hb.x < plat.x + plat.width
-          ) {
-            standingOnPlatform = true;
-            break;
-          }
-        }
+      let diving = keys["KeyS"] || keys["ArrowDown"];
+      if (diving) {
+        this.velY += 1.2;
+        if (this.velY > 6) this.velY = 6;
+      } else {
+        // Applica gravità ridotta in acqua
+        this.velY += 0.6;
+        if (this.velY > 1.5) this.velY = 1.5;
       }
-
-      // Se sei sopra legno/roccia, blocca discesa
-      if (standingOnPlatform) {
-        this.velY = 0;
-      }
-
-      // Altrimenti gravità normale in acqua
-      else {
-        let diving = keys["KeyS"] || keys["ArrowDown"];
-
-        if (diving) {
-          this.velY += 1.2;
-          if (this.velY > 5) this.velY = 5;
-        } else {
-          this.velY += 0.6;
-          if (this.velY > 1.5) this.velY = 1.5;
-        }
-      }
-
+    } else {
+      // Gravità normale fuori
+      this.velY += 0.4;
     }
 
+    // Applica movimento
     this.x += this.velX;
     this.y += this.velY;
     this.grounded = false;
 
-    // --- 5. COLLISIONI SOLIDE ---
+    // --- 6. COLLISIONI SOLIDE ---
     for (let plat of platforms) {
       if (plat.type !== "acqua") {
         this.resolveCollision(plat);

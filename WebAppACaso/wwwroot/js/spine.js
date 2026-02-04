@@ -89,11 +89,11 @@
     ctx.restore(); // Ripristina lo stato (così non ruota tutto il resto del gioco)
 
     // --- DEBUG HITBOX ---
-    ctx.strokeStyle = 'red';
-    ctx.lineWidth = 2;
-    for (const hb of this.hitboxes) {
-        ctx.strokeRect(this.x + hb.offsetX, this.y + hb.offsetY, hb.w, hb.h);
-    }
+    //ctx.strokeStyle = 'red';
+    //ctx.lineWidth = 2;
+    //for (const hb of this.hitboxes) {
+    //    ctx.strokeRect(this.x + hb.offsetX, this.y + hb.offsetY, hb.w, hb.h);
+    //}
   }
 
   // Controlla la collisione
