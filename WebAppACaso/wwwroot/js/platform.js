@@ -198,8 +198,8 @@ function initGame(level) {
 
     traguardo = new Traguardo(4855, worldHeight - 4900);
   } else if (level === 2) {
-    //player = new Marmotta(100, worldHeight - 4900);
-    player = new Marmotta(4400, worldHeight - 3700);
+    player = new Marmotta(2030, worldHeight - 3850);
+    //player = new Marmotta(4400, worldHeight - 3700);
 
     platforms = [
       // --- Acqua ---
@@ -484,7 +484,13 @@ function initGame(level) {
       new Spina(3985, 1188, 75, 45, "down"),
       new Spina(4045, 1188, 75, 45, "down"),
 
+      new Spina(2287, 1232, 75, 45, "up"),
 
+      new Spina(1660, 1177, 75, 45, "up"),
+
+      new Spina(985, 1117, 75, 45, "up"),
+      new Spina(1045, 1117, 75, 45, "up"),
+      new Spina(1105, 1117, 75, 45, "up"),
     ];
 
     traguardo = new Traguardo(130, worldHeight - 980);
