@@ -4,9 +4,8 @@
   ViewData["Title"] = "Campo Minato";
 }
 
-<div class="text-center">
-  <h1 class="display-4">Welcome to Marmottolandia</h1>
-  <h3 class="display-6">💥<strong>Campo Marmottato</strong>💥</h3>
+<div class="page-background text-center">
+  <h1 class="text-shadow display-6">💥<strong>Campo Marmottato</strong>💥</h1>
 
   <form asp-action="CampoMinato" method="post" class="mb-4">
     <div class="input-group justify-content-center">
@@ -54,7 +53,7 @@
         </tr>
       }
     </table>
-    <p>Numero di <strong>MARMOTTE</strong> <img src="~/favicon.png" class="img-bomba2" /> : @Model.ContaMine(matrice)</p>
+    <p class="text-shadow">Numero di <strong>MARMOTTE</strong> <img src="~/favicon.png" class="img-bomba2" /> : @Model.ContaMine(matrice)</p>
     <div id="gioco-container" data-totale-sicure="@celleSicure" class="d-none"></div>
   }
 </div>

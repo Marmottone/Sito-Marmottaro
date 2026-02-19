@@ -1,3 +1,8 @@
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 html {
   font-size: 14px;
 }
@@ -120,4 +125,46 @@ body {
 .btn-copertura:active {
   background-color: #999 !important;
   border: none;
+}
+
+.home-background {
+  background-image: url('/images/SfondoMarmotta.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  min-height: calc(100vh - 120px);
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.page-background {
+  background-image: url('/images/SfondoMarmotta.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  min-height: calc(100vh - 120px);
+  padding: 2rem 0; /* Aggiunge un po' di respiro sopra e sotto */
+}
+
+/* Aggiungi un'ombra al testo per renderlo leggibile su sfondi complessi */
+.text-shadow {
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
 }
